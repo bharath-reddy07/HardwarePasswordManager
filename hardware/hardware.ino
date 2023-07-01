@@ -37,10 +37,9 @@ int numState1=39;
 char state1[50][32]={"a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","0","1","2","3","4","5","6","7","8","9","@",".","OK"};
 char state1Input[32]="";
 
-int numState3 = 1;
-char state3[1][32] = {"Enter "}
-int numState6=5;
-char state6[5][32]={"Login","Add","Backup","Reset","Exit"};
+
+int numState3 = 5;
+char state3[5][32]={"Login","Add","Backup","Reset","Exit"};
 int value=0;
 
 
@@ -72,28 +71,63 @@ void loop() {
 }
 void handleChange(){
   if(state==0){
-    state = 1;
-    numItems=numState1;
-    rotaryEncoder.setBoundaries(0, numItems - 1, true); 
-    copyArray(menuItems,state1,numItems);
+    updateState(1);
   }
   if (state == 1){
     if (value == 38){//ok
       //Check Master Password
-      if (checkMasterPassword(state1Input)){
-        state = 3;
-        numItems=numState3;
-        rotaryEncoder.setBoundaries(0, numItems - 1, true); 
-        copyArray(menuItems,state3,numItems);
-        
-
-      }
+      if (checkMasterPassword(state1Input))
+        updateState(3);
+      
+      else
+        updateState(0);        
+      
     }
     else{
       //append character to string
     }
   }
 
+}
+
+void updateState(int newState){
+  switch(newState){
+    case 0: state = 0;
+            numItems=numState0;
+            rotaryEncoder.setBoundaries(0, numItems - 1, true); 
+            copyArray(menuItems,state0,numItems);
+            break;
+    case 1: state = 1;
+            numItems=numState1;
+            rotaryEncoder.setBoundaries(0, numItems - 1, true); 
+            copyArray(menuItems,state1,numItems);
+            break;
+    case 2: state = 2;
+            numItems=numState2;
+            rotaryEncoder.setBoundaries(0, numItems - 1, true); 
+            copyArray(menuItems,state2,numItems);
+            break;
+    case 3: state = 3;
+            numItems=numState3;
+            rotaryEncoder.setBoundaries(0, numItems - 1, true); 
+            copyArray(menuItems,state3,numItems);
+            break;
+    case 4: state = 4;
+            numItems=numState4;
+            rotaryEncoder.setBoundaries(0, numItems - 1, true); 
+            copyArray(menuItems,state4,numItems);
+            break;
+    case 5: state = 5;
+            numItems=numState5;
+            rotaryEncoder.setBoundaries(0, numItems - 1, true); 
+            copyArray(menuItems,state5,numItems);
+            break;
+    case 6: state = 6;
+            numItems=numState6;
+            rotaryEncoder.setBoundaries(0, numItems - 1, true); 
+            copyArray(menuItems,state6,numItems);
+            break;
+  }
 }
 
 void checkMasterPassword(char userInp[32]){
