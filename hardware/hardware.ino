@@ -25,7 +25,7 @@ struct cipherVector {
   const char* id;         //contains userid or email
   byte cipher[KEY_SIZE];  //encrypted password
 };
-cipherVector const testCipher1 = {
+cipherVector const cipher1 = {
   //to test master password
   "Test",
   "123456789012345",
@@ -33,12 +33,6 @@ cipherVector const testCipher1 = {
     0x76, 0x4C, 0x3A, 0x2B, 0xD6, 0x80, 0xAE, 0xF6 }  //123456789012345
 };
 
-cipherVector const cipher1 = {
-  "Gmail",
-  "posterskensri@gmail.com",
-  { 0x5D, 0x16, 0x26, 0x6E, 0x10, 0xB8, 0xE5, 0xFE,
-    0x76, 0x4C, 0x3A, 0x2B, 0xD6, 0x80, 0xAE, 0xF6 }  //123456789012345
-};
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 32 // OLED display height, in pixels
@@ -128,7 +122,7 @@ void handleChange(){
       sha256.update(state1Input, strlen(state1Input));
       sha256.finalize(key_hash, sizeof(key_hash));
       aes256.setKey(key_hash, aes256.keySize());
-      if (testMaster(&aes256, key_hash, &testCipher1)){
+      if (testMaster(&aes256, key_hash, &cipher1)){
         updateState(3);
         return;
       }
@@ -155,21 +149,25 @@ void updateState(int newState){
             numItems=numState0;
             rotaryEncoder.setBoundaries(0, numItems - 1, true); 
             copyArray(menuItems,state0,numItems);
+            value = 0;
             break;
     case 1: state = 1;
             numItems=numState1;
             rotaryEncoder.setBoundaries(0, numItems - 1, true); 
             copyArray(menuItems,state1,numItems);
+            value = 0;
             break;
     case 2: state = 2;
             numItems=numState2;
             rotaryEncoder.setBoundaries(0, numItems - 1, true); 
             copyArray(menuItems,state2,numItems);
+            value = 0;
             break;
     case 3: state = 3;
             numItems=numState3;
             rotaryEncoder.setBoundaries(0, numItems - 1, true); 
             copyArray(menuItems,state3,numItems);
+            value = 0;
             break;
     /*case 4: state = 4;
             numItems=numState4;
