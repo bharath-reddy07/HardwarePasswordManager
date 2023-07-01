@@ -4,6 +4,7 @@
 #include <Adafruit_SSD1306.h>
 #include "AiEsp32RotaryEncoder.h"
 #include "Arduino.h"
+#include <string.h>
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 32 // OLED display height, in pixels
@@ -19,43 +20,74 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 #define ROTARY_ENCODER_STEPS 2
 AiEsp32RotaryEncoder rotaryEncoder = AiEsp32RotaryEncoder(ROTARY_ENCODER_A_PIN, ROTARY_ENCODER_B_PIN, ROTARY_ENCODER_BUTTON_PIN, ROTARY_ENCODER_VCC_PIN, ROTARY_ENCODER_STEPS);
 
-int x, minX;
+void copyArray(char  array1[100][32], char array2[100][32], int arraySize);
 
-int numItems = 5;
+int x, minX;
+bool interruptHappened = false;
+
+int numItems = 1;
+int state=0;
 char menuItems[100][32] = {"Passwords", "Long message", "Very long message", "Very very long message", "short"};
+int numState0=1;
+
+char state0[1][32]={"Enter the master password"};
+
+
+int numState1=40;
+char state1[50][32]={"a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","0","1","2","3","4","5","6","7","8","9","@",".","OK"};
+char state1Input[1][32]={};
+int numState6=5;
+char state6[5][32]={"Login","Add","Backup","Reset","Exit"};
 int i=0;
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   setupDisplay();
-  setupRotaryEncoder();
+  setupRotaryEncoder();  
+  copyArray(menuItems, state0, numState0);
+  delay(2000);
 }
 
 
 
-void loop() {
-  rotary_loop();
+void loop() { 
   delay(50);
   displayMessage(menuItems[i]);
-  delay(500); //or do whatever you need to do...
-
+//  delay(500/); //or do whatever you need to do...
+  rotary_loop();
+  delay(50);
 
 }
-
-
-
+void handleChange()
+{
+  if(state==0)
+  {
+    state++;
+    numItems=numState1;
+    rotaryEncoder.setBoundaries(0, numItems - 1, true); 
+    copyArray(menuItems,state1,numItems);
+  }
+}
 void displayMessage(char *message){
   
   x = display.width();
-
+  Serial.println(x);
   minX = -12*strlen(message);
   while (x > minX){
-  clearDisplay();
+    if (interruptHappened){
+      delay(10);
+      interruptHappened=false;
+      return;
+      }
+  
   display.setCursor(x,15);
   display.print(message);
-
+  Serial.print(message);
+  if (rotaryEncoder.isEncoderButtonClicked())
+    rotary_onButtonClick();
   display.display();
   x=x-SCROLLSPEED;
+  clearDisplay();
   }
   x= display.width();
 
@@ -92,11 +124,11 @@ void rotary_onButtonClick(){
   static unsigned long lastTimePressed = 0; // Soft debouncing
   if (millis() - lastTimePressed < 500)
     return;
-  
   lastTimePressed = millis();
   Serial.print("button pressed ");
   Serial.print(millis());
   Serial.println(" milliseconds after restart");
+  handleChange();
 }
 
 void rotary_loop(){
@@ -111,6 +143,8 @@ void rotary_loop(){
 }
 void IRAM_ATTR readEncoderISR(){
     rotaryEncoder.readEncoder_ISR();
+    interruptHappened = true;
+    
 }
 
 void setupRotaryEncoder(){
@@ -120,3 +154,11 @@ void setupRotaryEncoder(){
   rotaryEncoder.setBoundaries(0, numItems - 1, circleValues); 
   rotaryEncoder.disableAcceleration(); 
 }
+
+void copyArray(char array1[100][32], char array2[100][32], int arraySize){
+  for (int j = 0; j<arraySize; j++){
+    strcpy(array1[j], array2[j]);
+    }
+  
+  
+  }
