@@ -9,7 +9,13 @@
 #include <SHA256.h>
 #include <AES.h>
 #include <string.h>
+#include "Adafruit_EEPROM_I2C.h"
+#include "Adafruit_FRAM_I2C.h"
 
+#define EEPROM_ADDR 0x50  
+#define KEY_SIZE 16
+
+Adafruit_EEPROM_I2C i2ceeprom;
 
 #define HASH_SIZE 32
 #define KEY_SIZE 16
@@ -21,10 +27,11 @@ SHA256 sha256;
 AES256 aes256;
 
 struct cipherVector {
-  const char* name;       //name of id, password
-  const char* id;         //contains userid or email
+  char name[16];       //name of id, password
+  char id[32];         //contains userid or email
   byte cipher[KEY_SIZE];  //encrypted password
 };
+
 cipherVector const cipher1 = {
   //to test master password
   "Test",
@@ -33,6 +40,8 @@ cipherVector const cipher1 = {
     0x76, 0x4C, 0x3A, 0x2B, 0xD6, 0x80, 0xAE, 0xF6 }  //123456789012345
 };
 
+byte buffer[sizeof(cipherVector)];
+cipherVector f;
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 32 // OLED display height, in pixels
@@ -95,6 +104,7 @@ void setup() {
   Serial.begin(115200);
   setupDisplay();
   setupRotaryEncoder();  
+  setupFlash();
   copyArray(menuItems, state0, numState0);
   delay(2000);
 }
@@ -107,6 +117,12 @@ void loop() {
 //  delay(500/); //or do whatever you need to do...
   rotary_loop();
   delay(50);
+  strcpy(f.id, "HELHEHEHELh");
+  writeToFlash(&f,64);
+  readFromFlash(&f, 64);
+  Serial.print("ID:");  
+  Serial.println(f.id);
+  delay(500);//remove this
 
 }
 void handleChange(){
@@ -199,8 +215,8 @@ void displayMessage(char *message){
   
   display.setCursor(x,15);
   display.print(message);
-  Serial.print(message);
-  Serial.println(value);
+  // Serial.print(message);
+  // Serial.println(value);
   if (rotaryEncoder.isEncoderButtonClicked())
     rotary_onButtonClick();
   display.display();
@@ -277,4 +293,23 @@ void copyArray(char array1[100][32], char array2[100][32], int arraySize){
   for (int j = 0; j<arraySize; j++){
     strcpy(array1[j], array2[j]);
     }  
+}
+
+void setupFlash(){
+    if (i2ceeprom.begin(0x50, &Wire)) {  // you can stick the new i2c addr in here, e.g. begin(0x51);
+    Serial.println("Found I2C EEPROM");
+  } else {
+    Serial.println("I2C EEPROM not identified ... check your connections?\r\n");
+    while (1) delay(10);
+  }
+}
+
+void writeToFlash(struct cipherVector *cipherVectorPtr, uint16_t addr){
+  memcpy(buffer, (void*)cipherVectorPtr, sizeof(cipherVector)); //to write
+  i2ceeprom.write(addr, buffer, sizeof(buffer));
+}
+
+void readFromFlash(struct cipherVector *cipherVectorPtr, uint16_t addr){
+  i2ceeprom.read(addr, buffer, sizeof(cipherVector));//to read
+  memcpy((cipherVector*)cipherVectorPtr, buffer, sizeof(cipherVector));
 }
