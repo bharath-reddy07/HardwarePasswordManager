@@ -33,13 +33,25 @@ int numState0=1;
 char state0[1][32]={"Enter the master password"};
 
 
-int numState1=40;
+int numState1=39;
 char state1[50][32]={"a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","0","1","2","3","4","5","6","7","8","9","@",".","OK"};
-char state1Input[1][32]={};
+char state1Input[32]="";
+
+int numState3 = 1;
+char state3[1][32] = {"Enter "}
 int numState6=5;
 char state6[5][32]={"Login","Add","Backup","Reset","Exit"};
-int i=0;
+int value=0;
 
+
+/*
+0 "Enter master pass"
+1 Take master pass input. onclick check master
+2 "Incorrect" (one more variable for keeping track of number of incorrect)
+3 "login", "add", "backup", "reset", "exit"
+4 website name
+
+*/
 void setup() {
   Serial.begin(115200);
   setupDisplay();
@@ -52,26 +64,43 @@ void setup() {
 
 void loop() { 
   delay(50);
-  displayMessage(menuItems[i]);
+  displayMessage(menuItems[value]);
 //  delay(500/); //or do whatever you need to do...
   rotary_loop();
   delay(50);
 
 }
-void handleChange()
-{
-  if(state==0)
-  {
-    state++;
+void handleChange(){
+  if(state==0){
+    state = 1;
     numItems=numState1;
     rotaryEncoder.setBoundaries(0, numItems - 1, true); 
     copyArray(menuItems,state1,numItems);
   }
+  if (state == 1){
+    if (value == 38){//ok
+      //Check Master Password
+      if (checkMasterPassword(state1Input)){
+        state = 3;
+        numItems=numState3;
+        rotaryEncoder.setBoundaries(0, numItems - 1, true); 
+        copyArray(menuItems,state3,numItems);
+        
+
+      }
+    }
+    else{
+      //append character to string
+    }
+  }
+
+}
+
+void checkMasterPassword(char userInp[32]){
+  return true;
 }
 void displayMessage(char *message){
-  
   x = display.width();
-  Serial.println(x);
   minX = -12*strlen(message);
   while (x > minX){
     if (interruptHappened){
@@ -83,6 +112,7 @@ void displayMessage(char *message){
   display.setCursor(x,15);
   display.print(message);
   Serial.print(message);
+  Serial.println(value);
   if (rotaryEncoder.isEncoderButtonClicked())
     rotary_onButtonClick();
   display.display();
@@ -135,7 +165,7 @@ void rotary_loop(){
   if (rotaryEncoder.encoderChanged()){
     Serial.print("Value: ");
     Serial.println(rotaryEncoder.readEncoder());
-    i = rotaryEncoder.readEncoder();
+    value = rotaryEncoder.readEncoder();
   }
   if (rotaryEncoder.isEncoderButtonClicked())
     rotary_onButtonClick();
@@ -158,7 +188,5 @@ void setupRotaryEncoder(){
 void copyArray(char array1[100][32], char array2[100][32], int arraySize){
   for (int j = 0; j<arraySize; j++){
     strcpy(array1[j], array2[j]);
-    }
-  
-  
-  }
+    }  
+}
