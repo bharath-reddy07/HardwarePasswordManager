@@ -72,15 +72,20 @@ void loop() {
 void handleChange(){
   if(state==0){
     updateState(1);
+    return;
   }
   if (state == 1){
     if (value == 38){//ok
       //Check Master Password
-      if (checkMasterPassword(state1Input))
+      if (checkMasterPassword(state1Input)){
         updateState(3);
+        return;
+      }
       
-      else
-        updateState(0);        
+      else{
+        updateState(0);
+        return;
+      }        
       
     }
     else{
