@@ -5,6 +5,40 @@
 #include "AiEsp32RotaryEncoder.h"
 #include "Arduino.h"
 #include <string.h>
+#include <Crypto.h>
+#include <SHA256.h>
+#include <AES.h>
+#include <string.h>
+
+
+#define HASH_SIZE 32
+#define KEY_SIZE 16
+
+byte key_hash[HASH_SIZE];
+byte decryptedText[KEY_SIZE];
+
+SHA256 sha256;
+AES256 aes256;
+
+struct cipherVector {
+  const char* name;       //name of id, password
+  const char* id;         //contains userid or email
+  byte cipher[KEY_SIZE];  //encrypted password
+};
+cipherVector const testCipher1 = {
+  //to test master password
+  "Test",
+  "123456789012345",
+  { 0x5D, 0x16, 0x26, 0x6E, 0x10, 0xB8, 0xE5, 0xFE,
+    0x76, 0x4C, 0x3A, 0x2B, 0xD6, 0x80, 0xAE, 0xF6 }  //123456789012345
+};
+
+cipherVector const cipher1 = {
+  "Gmail",
+  "posterskensri@gmail.com",
+  { 0x5D, 0x16, 0x26, 0x6E, 0x10, 0xB8, 0xE5, 0xFE,
+    0x76, 0x4C, 0x3A, 0x2B, 0xD6, 0x80, 0xAE, 0xF6 }  //123456789012345
+};
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 32 // OLED display height, in pixels
@@ -36,7 +70,8 @@ char state0[1][32]={"Enter the master password"};
 int numState1=39;
 char state1[50][32]={"a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","0","1","2","3","4","5","6","7","8","9","@",".","OK"};
 char state1Input[32]="";
-
+int numState2 = 1;
+char state2[1][32] = {"Password incorrect"};
 
 int numState3 = 5;
 char state3[5][32]={"Login","Add","Backup","Reset","Exit"};
@@ -51,6 +86,17 @@ int value=0;
 4 website name
 
 */
+bool testMaster(AES256* aes256, byte* key_hash, const struct cipherVector* testCipher){
+  //test
+  aes256->decryptBlock(decryptedText, testCipher->cipher);
+  bool valid = true;
+  for(int i = 0; i < KEY_SIZE; i++){
+    valid &= decryptedText[i] == testCipher->id[i];
+  }
+  Serial.print("Master password is ");
+  Serial.print(int(valid));
+  return valid;
+}
 void setup() {
   Serial.begin(115200);
   setupDisplay();
@@ -75,14 +121,20 @@ void handleChange(){
     return;
   }
   if (state == 1){
+    
     if (value == 38){//ok
       //Check Master Password
-      if (checkMasterPassword(state1Input)){
+      sha256.reset();
+      sha256.update(state1Input, strlen(state1Input));
+      sha256.finalize(key_hash, sizeof(key_hash));
+      aes256.setKey(key_hash, aes256.keySize());
+      if (testMaster(&aes256, key_hash, &testCipher1)){
         updateState(3);
         return;
       }
       
       else{
+        strcpy(state1Input,"");
         updateState(0);
         return;
       }        
@@ -90,6 +142,8 @@ void handleChange(){
     }
     else{
       //append character to string
+      strcat(state1Input,menuItems[value]);
+      Serial.println(state1Input);
     }
   }
 
@@ -117,7 +171,7 @@ void updateState(int newState){
             rotaryEncoder.setBoundaries(0, numItems - 1, true); 
             copyArray(menuItems,state3,numItems);
             break;
-    case 4: state = 4;
+    /*case 4: state = 4;
             numItems=numState4;
             rotaryEncoder.setBoundaries(0, numItems - 1, true); 
             copyArray(menuItems,state4,numItems);
@@ -131,13 +185,10 @@ void updateState(int newState){
             numItems=numState6;
             rotaryEncoder.setBoundaries(0, numItems - 1, true); 
             copyArray(menuItems,state6,numItems);
-            break;
+            break;*/
   }
 }
 
-void checkMasterPassword(char userInp[32]){
-  return true;
-}
 void displayMessage(char *message){
   x = display.width();
   minX = -12*strlen(message);
