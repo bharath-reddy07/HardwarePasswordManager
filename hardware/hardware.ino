@@ -52,8 +52,8 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 #define SCROLLSPEED 1
 
 #define ROTARY_ENCODER_A_PIN 5
-#define ROTARY_ENCODER_B_PIN 17
-#define ROTARY_ENCODER_BUTTON_PIN 16
+#define ROTARY_ENCODER_B_PIN 33
+#define ROTARY_ENCODER_BUTTON_PIN 32
 #define ROTARY_ENCODER_VCC_PIN -1
 #define ROTARY_ENCODER_STEPS 2
 AiEsp32RotaryEncoder rotaryEncoder = AiEsp32RotaryEncoder(ROTARY_ENCODER_A_PIN, ROTARY_ENCODER_B_PIN, ROTARY_ENCODER_BUTTON_PIN, ROTARY_ENCODER_VCC_PIN, ROTARY_ENCODER_STEPS);
@@ -134,6 +134,7 @@ bool testMaster(AES256* aes256, byte* key_hash, const struct cipherVector* testC
 }
 void setup() {
   Serial.begin(115200);
+  Serial2.begin(115200);
   setupDisplay();
   setupRotaryEncoder();
   setupFlash();
@@ -144,6 +145,8 @@ void setup() {
 
 
 void loop() {
+  // uint8_t fgt = 0;
+  //   i2ceeprom.write((uint16_t)0, &fgt, (uint16_t)1);
   // byte number[64] = {0};
   // i2ceeprom.write(0, number, sizeof(number));
   // delay(50);
@@ -160,7 +163,7 @@ void loop() {
   // aes256.decryptBlock((uint8_t*)thismyoutput, decryptedText);
   // Serial.println((char*)thismyoutput);
 
-  readFromFlash(&f, (uint16_t)64);
+  //readFromFlash(&f, (uint16_t)64);
   // Serial.println(f.id);
   // Serial.println(f.name);
 
@@ -181,8 +184,16 @@ void handleChange() {
       sha256.finalize(key_hash, sizeof(key_hash));
       aes256.setKey(key_hash, aes256.keySize());
 
+      byte ecrt[16];
+      char passwrd[16];
+      strcpy(passwrd, "postersnbd");
+      aes256.encryptBlock(f.cipher, (uint8_t*)passwrd);
+
 
       if (testMaster(&aes256, key_hash, &cipher1)) {
+        strcpy(f.id, "p gmail");
+        strcpy(f.name, "posterskensri");
+        writeToFlash(&f, (uint16_t)64);
         updateState(3);
         return;
       }
@@ -210,8 +221,10 @@ void handleChange() {
     }
   }
   if (state == 4) {
-    aes256.decryptBlock(decryptedText,(uint8_t*)f.cipher);
-    Serial.println((char *)decryptedText);    
+    aes256.decryptBlock(decryptedText, (uint8_t*)f.cipher);
+    Serial.println(String(f.name) + "'" + String((char*)decryptedText));
+    Serial2.println(String(f.name) + "'" + String((char*)decryptedText));
+    //Serial.println((char *)decryptedText);
     return;
   }
 
@@ -272,6 +285,7 @@ void handleChange() {
     numBlocks++;
     i2ceeprom.write((uint16_t)0, &numBlocks, (uint16_t)1);
     updateState(3);
+    Serial.println("numblocks " + String(numBlocks));
   }
 }
 
@@ -307,18 +321,19 @@ void updateState(int newState) {
       break;
     case 4:
       state = 4;
-      numItems = numState4;
+      i2ceeprom.read((uint16_t)0, &numBlocks, (uint16_t)1);
+      numItems = numBlocks;
+      numState4 = numItems;
       rotaryEncoder.setBoundaries(0, numItems - 1, true);
       copyArray(menuItems, state4, numItems);
 
-      i2ceeprom.read((uint16_t)0, &numBlocks, (uint16_t)1);
-      numItems = numBlocks;
 
-      for (int i = 0; i<numBlocks; i++){
-        readFromFlash(&data[i], (1+i)*64);
-        strcpy(menuItems[i], data[i].id);
+
+      for (int i = 0; i < numBlocks; i++) {
+        readFromFlash(&data[0], (1 + i) * 64);
+        strcpy(menuItems[i], data->id);
         strcat(menuItems[i], "   :   ");
-        strcat(menuItems[i], data[i].name);
+        strcat(menuItems[i], data->name);
       }
       break;
     case 5:
